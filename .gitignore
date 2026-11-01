@@ -1,0 +1,41 @@
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+**/appsettings.*.local.json
+**/appsettings.Local.json
+
+# .NET and IDE-generated files
+**/bin/
+**/obj/
+**/TestResults/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Azure publish profiles may contain deployment credentials
+**/Properties/PublishProfiles/
+*.pubxml*
+
+# Local tooling, logs, temporary files, and build output
+docker-compose.override.yml
+artifacts/
+publish/
+**/Publish/
+**/publish/
+coverage/
+**/temp/
+**/tmp/
+**/.cache/
+**/*.cache
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+Thumbs.db
+.DS_Store

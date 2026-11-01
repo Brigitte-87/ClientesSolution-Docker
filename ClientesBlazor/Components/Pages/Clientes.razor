@@ -1,0 +1,409 @@
+﻿@page "/clientes"
+@rendermode InteractiveServer
+@using ClientesBlazor.Models
+@using System.Net.Http.Json
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JSRuntime
+@inject ILogger<Clientes> Logger
+
+<PageTitle>Clientes</PageTitle>
+
+<style>
+    .validation-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+</style>
+
+<h3 class="mb-4">Administración de Clientes</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert @claseMensaje alert-dismissible fade show" role="alert">
+        @mensaje
+        <button type="button"
+                class="btn-close"
+                @onclick="() => mensaje = string.Empty">
+        </button>
+    </div>
+}
+
+<div class="mb-3">
+    <button type="button" class="btn btn-primary" @onclick="AbrirNuevo">
+        Agregar cliente
+    </button>
+</div>
+
+@if (clientes == null)
+{
+    <p>Cargando clientes...</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>CUI</th>
+                    <th>NIT</th>
+                    <th>Nombres</th>
+                    <th>Apellidos</th>
+                    <th>Dirección</th>
+                    <th>Teléfono</th>
+                    <th>Fecha nacimiento</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var cliente in clientes)
+                {
+                    <tr>
+                        <td>@cliente.IdCliente</td>
+                        <td>@cliente.CUI</td>
+                        <td>@cliente.NIT</td>
+                        <td>@cliente.Nombres</td>
+                        <td>@cliente.Apellidos</td>
+                        <td>@cliente.Direccion</td>
+                        <td>@cliente.Telefono</td>
+                        <td>@cliente.FechaNacimiento.ToString("dd/MM/yyyy")</td>
+
+                        <td>
+                            <button class="btn btn-warning btn-sm me-1"
+                                    @onclick="() => AbrirEditar(cliente)">
+                                Editar
+                            </button>
+
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => Eliminar(cliente.IdCliente)">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block"
+         tabindex="-1"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="clienteModalTitle">
+
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 id="clienteModalTitle" class="modal-title">
+                        @(editando ? "Modificar cliente" : "Agregar cliente")
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            @onclick="CerrarModal">
+                    </button>
+                </div>
+
+                <EditForm Model="clienteFormulario"
+                          OnValidSubmit="GuardarCliente">
+
+                    <DataAnnotationsValidator />
+
+                    <div class="modal-body">
+                        <ValidationSummary />
+                        <div class="row">
+
+                            <div class="col-md-6 mb-3">
+                                <label for="clienteCui" class="form-label">CUI</label>
+
+                                <InputText id="clienteCui" class="form-control"
+                                           @bind-Value="clienteFormulario.CUI" />
+
+                                <ValidationMessage For="@(() => clienteFormulario.CUI)" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="clienteNit" class="form-label">NIT</label>
+
+                                <InputText id="clienteNit" class="form-control"
+                                           @bind-Value="clienteFormulario.NIT" />
+
+                                <ValidationMessage For="@(() => clienteFormulario.NIT)" />
+                                <small class="form-text text-muted">Usa dígitos, opcionalmente con guion y dígito verificador.</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="clienteNombres" class="form-label">Nombres</label>
+
+                                <InputText id="clienteNombres" class="form-control"
+                                           @bind-Value="clienteFormulario.Nombres" />
+
+                                <ValidationMessage For="@(() => clienteFormulario.Nombres)" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="clienteApellidos" class="form-label">Apellidos</label>
+
+                                <InputText id="clienteApellidos" class="form-control"
+                                           @bind-Value="clienteFormulario.Apellidos" />
+
+                                <ValidationMessage For="@(() => clienteFormulario.Apellidos)" />
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="clienteDireccion" class="form-label">Dirección</label>
+
+                                <InputText id="clienteDireccion" class="form-control"
+                                           @bind-Value="clienteFormulario.Direccion" />
+
+                                <ValidationMessage For="@(() => clienteFormulario.Direccion)" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="clienteTelefono" class="form-label">Teléfono</label>
+
+                                <InputText id="clienteTelefono" class="form-control"
+                                           @bind-Value="clienteFormulario.Telefono" />
+
+                                <ValidationMessage For="@(() => clienteFormulario.Telefono)" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="clienteFechaNacimiento" class="form-label">Fecha de nacimiento</label>
+
+                                <InputDate id="clienteFechaNacimiento" class="form-control"
+                                           @bind-Value="clienteFormulario.FechaNacimiento"
+                                           max="@FechaMaxima.ToString("yyyy-MM-dd")" />
+
+                                <ValidationMessage For="@(() => clienteFormulario.FechaNacimiento)" />
+
+                                <small class="text-muted">
+                                    El cliente debe tener al menos 18 años.
+                                </small>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button"
+                                class="btn btn-secondary"
+                                @onclick="CerrarModal">
+                            Cancelar
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Guardar
+                        </button>
+                    </div>
+
+                </EditForm>
+
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+
+    private List<Cliente>? clientes;
+
+    private Cliente clienteFormulario = new();
+
+    private bool mostrarModal;
+
+    private bool editando;
+
+    private string mensaje = string.Empty;
+
+    private string claseMensaje = "alert-success";
+
+    private DateTime FechaMaxima => DateTime.Today.AddYears(-18);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarClientes();
+    }
+
+    private HttpClient ObtenerClienteHttp()
+    {
+        return HttpClientFactory.CreateClient("ClientesAPI");
+    }
+
+    private async Task CargarClientes()
+    {
+        try
+        {
+            var http = ObtenerClienteHttp();
+
+            clientes = await http.GetFromJsonAsync<List<Cliente>>("api/Clientes")
+                       ?? new List<Cliente>();
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "No fue posible cargar clientes desde la API.");
+            MostrarMensaje("No fue posible cargar los clientes.", false);
+
+            clientes = new List<Cliente>();
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            Logger.LogError(ex, "La API devolvió una respuesta de clientes no válida.");
+            MostrarMensaje("La API devolvió datos de clientes no válidos.", false);
+            clientes = new List<Cliente>();
+        }
+    }
+
+    private void AbrirNuevo()
+    {
+        clienteFormulario = new Cliente
+        {
+            FechaNacimiento = DateTime.Today.AddYears(-18)
+        };
+
+        editando = false;
+
+        mostrarModal = true;
+    }
+
+    private void AbrirEditar(Cliente cliente)
+    {
+        clienteFormulario = new Cliente
+        {
+            IdCliente = cliente.IdCliente,
+            CUI = cliente.CUI,
+            NIT = cliente.NIT,
+            Nombres = cliente.Nombres,
+            Apellidos = cliente.Apellidos,
+            Direccion = cliente.Direccion,
+            Telefono = cliente.Telefono,
+            FechaNacimiento = cliente.FechaNacimiento
+        };
+
+        editando = true;
+
+        mostrarModal = true;
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    private async Task GuardarCliente()
+    {
+        try
+        {
+            var http = ObtenerClienteHttp();
+
+            if (editando)
+            {
+                var respuesta = await http.PutAsJsonAsync(
+                    $"api/Clientes/{clienteFormulario.IdCliente}",
+                    clienteFormulario
+                );
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    MostrarMensaje(
+                        "Cliente actualizado correctamente.",
+                        true
+                    );
+                }
+                else
+                {
+                    MostrarMensaje($"No fue posible actualizar el cliente (HTTP {(int)respuesta.StatusCode}).", false);
+                    return;
+                }
+            }
+            else
+            {
+                clienteFormulario.IdCliente = 0;
+
+                var respuesta = await http.PostAsJsonAsync(
+                    "api/Clientes",
+                    clienteFormulario
+                );
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    MostrarMensaje(
+                        "Cliente agregado correctamente.",
+                        true
+                    );
+                }
+                else
+                {
+                    MostrarMensaje($"No fue posible agregar el cliente (HTTP {(int)respuesta.StatusCode}).", false);
+                    return;
+                }
+            }
+
+            mostrarModal = false;
+
+            await CargarClientes();
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Error de comunicación al guardar un cliente.");
+            MostrarMensaje("No fue posible comunicarse con la API para guardar el cliente.", false);
+        }
+    }
+
+    private async Task Eliminar(int id)
+    {
+        var confirmar = await JSRuntime.InvokeAsync<bool>(
+            "confirm",
+            "¿Está seguro de que desea eliminar este cliente?");
+
+        if (!confirmar)
+        {
+            return;
+        }
+
+        try
+        {
+            var http = ObtenerClienteHttp();
+
+            var respuesta = await http.DeleteAsync(
+                $"api/Clientes/{id}"
+            );
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                MostrarMensaje(
+                    "Cliente eliminado correctamente.",
+                    true
+                );
+
+                await CargarClientes();
+            }
+            else
+            {
+                MostrarMensaje($"No fue posible eliminar el cliente (HTTP {(int)respuesta.StatusCode}).", false);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Error de comunicación al eliminar un cliente.");
+            MostrarMensaje("No fue posible comunicarse con la API para eliminar el cliente.", false);
+        }
+    }
+
+    private void MostrarMensaje(string texto, bool correcto)
+    {
+        mensaje = texto;
+
+        claseMensaje = correcto
+            ? "alert-success"
+            : "alert-danger";
+    }
+}
